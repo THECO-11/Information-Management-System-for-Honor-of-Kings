@@ -29,15 +29,165 @@ This system support two roles:
 ---
 ## 3. Java Concepts Used
 
+### Inheritance
+Person is an abstract superclass.
+Player and Admin extend Person.
+
+### Interface
+Searchable:
+Used by SearchService for player, hero and team search.
+
+Persistable:
+Used by FileStorageService for saving and loading data.
+
+### Polymorphism
+All users can be stored in:
+
+List<Person> users;
+
+The system can process Player and Admin objects through Person references.
+
+### Encapsulation
+All fields are private.
+
+Getter and Setter methods are used to control access.
+
+### Collections
+ArrayList<Player> for team members.
+
+ArrayList<Hero> for player heroes.
+
+ArrayList<Equipment> for hero equipment.
+
+HashMap<String, Player> for fast player lookup.
+
+### Exception Handling
+Handle:
+
+- invalid menu input
+- duplicate IDs
+- player not found
+- file loading failure
+
+### File I/O
+FileStorageService saves and loads:
+
+- players
+- heroes
+- teams
+- match records
+
+using CSV files.
+
+### Enums
+HeroType:
+TANK, MAGE, ASSASSIN, MARKSMAN, SUPPORT
+
+Role:
+ADMIN, PLAYER
+
+MatchResult:
+WIN, LOSS, DRAW
+
+EquipmentType:
+ATTACK, DEFENSE, MAGIC, MOVEMENT
 
 ---
 ## 4. Class Design
+
+### Person (Abstract)
+Base class for all system users.
+
+Attributes:
+- id
+- name
+- username
+- password
+
+### Player
+Extends Person.
+
+Responsibilities:
+- own heroes
+- view match history
+- update personal profile
+
+### Admin
+Extends Person.
+
+Responsibilities:
+- manage system data
+- add/edit/delete records
+
+### Hero
+Stores hero information.
+
+Attributes:
+- heroId
+- heroName
+- heroType
+- attack
+- defense
+- equipmentList
+
+### Equipment
+Stores equipment information.
+
+Attributes:
+- equipmentId
+- equipmentName
+- equipmentType
+- score
+
+### Team
+Stores team information.
+
+Attributes:
+- teamId
+- teamName
+- members
+
+### MatchRecord
+Stores match data.
+
+Attributes:
+- matchId
+- date
+- result
+- players
+- heroesUsed
+
+### SearchService
+Provides search functions.
+
+### RankingService
+Generates leaderboard and equipment rankings.
+
+### AuthenticationService
+Handles login and role verification.
+
+### FileStorageService
+Handles file persistence.
+
+### GameDataManager
+Central manager for all system data.
 
 ---
 ## 5. UML Draft
 
 ---
 ## 6. Data Design
+
+### Initial Dataset
+
+The system will contain:
+
+- 3 Teams
+- 10 Players
+- 15 Heroes
+- 20 Equipment items
+- 10 Match Records
+
 
 ---
 ## 7. AI Usage Plan
@@ -69,6 +219,7 @@ This system support two roles:
 - **step 6**  Compile and run frequently. 
 - **step 7**  Use test cases to test the system, and record what happened.
 - **step 8**  Finish ** prompts.md**, **agent-log.md**, **reflection.md**, **git-history.txt**, **README.md**. 
+- 
 
 ---
 ## 10. Testing Plan
