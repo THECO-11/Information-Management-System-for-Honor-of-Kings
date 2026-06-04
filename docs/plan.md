@@ -8,23 +8,40 @@
 ---
 ## 1.Project Goal
 
-This system could store and look up data about heroes, equipments, teams and so on.  
+This system stores and manages information about heroes, equipment, teams, and match records.
 
-This system support two roles:  
-- Admin: can create and deleted all data
-- users: can look up public data 
+The system supports two roles:
+- Admin: can create, edit, and delete data
+- Player: can view and search public information
 
 ---
 ## 2. Requirement Analysis
 
-1. **player look up**: users can loop up players' name, team, level and so on by searching player's ID.
-2. **team overview**: users can loop up teams' name, all team members, games and so on by searching team's ID.
-3. **hero details**: users can find a hero's detailed information by searching hero's ID.
-4. **equipments**: Rank equipment will be decided by factor like usage count, average rating and so on.
-5. **match history**: users can search the match for a player or a team, and they can find details about the game.
-6. **leaderboard**: leaderboard will be decided by win rate, level and so on.
-7. **data management**: admin can add, delete, and edit all data in the system.
-8. **authentication**: the System support two roles login.
+
+1. **Player Lookup**  
+   Users can search for a player by ID and view player information.
+
+2. **Team Overview**  
+   Users can search for a team by ID and view team details and members.
+
+3. **Hero Details**  
+   Users can search for a hero by ID and view hero information and equipment.
+
+4. **Equipment Ranking**  
+   The system generates equipment rankings based on usage and rating.
+
+5. **Match History**  
+   Users can view match records for players and teams.
+
+6. **Leaderboard**  
+   The system generates player rankings based on win rate and level.
+
+7. **Data Management**  
+   Admins can add, edit, and delete system data.
+
+8. **Authentication**  
+   The system supports login for Admin and Player roles.
+
 
 ---
 ## 3. Java Concepts Used
@@ -35,15 +52,20 @@ Player and Admin extend Person.
 
 ### Interface
 Searchable:
-Used by SearchService for player, hero and team search.
+Used by SearchService.
 
 Persistable:
-Used by FileStorageService for saving and loading data.
+Used by FileStorageService.
+
+Authenticatable:
+Used by AuthenticationService for login verification.
 
 ### Polymorphism
 All users can be stored in:
 
+```java
 List<Person> users;
+```
 
 The system can process Player and Admin objects through Person references.
 
@@ -108,7 +130,7 @@ Attributes:
 Extends Person.
 
 Responsibilities:
-- own heroes
+- manage hero collection
 - view match history
 - update personal profile
 
@@ -175,6 +197,8 @@ Central manager for all system data.
 ---
 ## 5. UML Draft
 
+![UML Class Diagram](HonorOfKings_UML.png)
+
 ---
 ## 6. Data Design
 
@@ -188,7 +212,12 @@ The system will contain:
 - 20 Equipment items
 - 10 Match Records
 
+### Relationships
 
+- Each Team contains multiple Players.
+- Each Player owns multiple Heroes.
+- Each Hero can use multiple Equipment items.
+- Each MatchRecord contains participating Players and Heroes used.
 ---
 ## 7. AI Usage Plan
 **Architect Agent**: Suggest class structure, interface names, UML relationships
@@ -196,6 +225,8 @@ The system will contain:
 **Implementation Agent**: Write code to modify, finish the class struct.
 
 **Testing/Reviewer Agent**: Find bugs, suggest test cases, give me the suggestion.
+
+All AI suggestions will be reviewed and verified before being used in the project.
 
 ---
 ## 8. Prompt Strategy
@@ -211,15 +242,23 @@ The system will contain:
 ---
 ## 9. Development Timeline
 
-- **step 1**  Read requirements, create Git repository, write this **plan.md**.
-- **step 2**  Ask **Architect Agent** for class design feedback; revise structure and **plan.md**.
-- **step 3**  Write the basic classes and use **Implementation Agent** to modify it, revise **plan.md**.
-- **step 4**  Use **Implementation prompts** to finish classes one by one, and check by myself every time.
-- **step 5**  Use **Testing/Reviewer Agent** to find bugs and give me some suggestion and test cases, revise **plan.md**.
-- **step 6**  Compile and run frequently. 
-- **step 7**  Use test cases to test the system, and record what happened.
-- **step 8**  Finish ** prompts.md**, **agent-log.md**, **reflection.md**, **git-history.txt**, **README.md**. 
-- 
+- **step 1**    
+Read requirements, create Git repository, write this **plan.md**.
+- **step 2**    
+Ask **Architect Agent** for class design feedback; revise structure and **plan.md**.
+- **step 3**    
+Write the basic classes and use **Implementation Agent** to modify it, revise **plan.md**.
+- **step 4**    
+Use **Implementation prompts** to finish classes one by one, and check by myself every time.
+- **step 5**   
+Use **Testing/Reviewer Agent** to find bugs and give me some suggestion and test cases, revise **plan.md**.
+- **step 6**    
+Compile and run frequently. 
+- **step 7**    
+Use test cases to test the system, and record what happened.
+- **step 8**    
+Finish **prompts.md**, **agent-log.md**, **reflection.md**, **git-history.txt**, **README.md**. 
+
 
 ---
 ## 10. Testing Plan
