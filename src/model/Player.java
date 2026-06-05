@@ -47,7 +47,7 @@ public class Player extends Person {
     }
 
     public void setHeroes(List<Hero> heroes) {
-        this.heroes = heroes;
+        this.heroes = heroes == null ? new ArrayList<>() : heroes;
     }
 
     public List<MatchRecord> getMatchHistory() {
@@ -55,6 +55,28 @@ public class Player extends Person {
     }
 
     public void setMatchHistory(List<MatchRecord> matchHistory) {
-        this.matchHistory = matchHistory;
+        this.matchHistory = matchHistory == null ? new ArrayList<>() : matchHistory;
+    }
+
+    public void addHero(Hero hero) {
+        if (hero != null) {
+            heroes.add(hero);
+        }
+    }
+
+    public void addMatchRecord(MatchRecord matchRecord) {
+        if (matchRecord != null) {
+            matchHistory.add(matchRecord);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Player{" +
+                "id='" + getId() + '\'' +
+                ", name='" + getName() + '\'' +
+                ", level=" + level +
+                ", winRate=" + winRate +
+                '}';
     }
 }

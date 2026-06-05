@@ -37,6 +37,21 @@ public class Team {
     }
 
     public void setMembers(List<Player> members) {
-        this.members = members;
+        this.members = members == null ? new ArrayList<>() : members;
+    }
+
+    public void addMember(Player player) {
+        if (player != null) {
+            members.add(player);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Team{" +
+                "teamId='" + teamId + '\'' +
+                ", teamName='" + teamName + '\'' +
+                ", memberCount=" + members.size() +
+                '}';
     }
 }

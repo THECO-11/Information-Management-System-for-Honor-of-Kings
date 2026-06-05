@@ -53,7 +53,7 @@ public class MatchRecord {
     }
 
     public void setPlayers(List<Player> players) {
-        this.players = players;
+        this.players = players == null ? new ArrayList<>() : players;
     }
 
     public List<Hero> getHeroesUsed() {
@@ -61,7 +61,7 @@ public class MatchRecord {
     }
 
     public void setHeroesUsed(List<Hero> heroesUsed) {
-        this.heroesUsed = heroesUsed;
+        this.heroesUsed = heroesUsed == null ? new ArrayList<>() : heroesUsed;
     }
 
     public MatchResult getResult() {
@@ -70,5 +70,27 @@ public class MatchRecord {
 
     public void setResult(MatchResult result) {
         this.result = result;
+    }
+
+    public void addPlayer(Player player) {
+        if (player != null) {
+            players.add(player);
+        }
+    }
+
+    public void addHeroUsed(Hero hero) {
+        if (hero != null) {
+            heroesUsed.add(hero);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "MatchRecord{" +
+                "matchId='" + matchId + '\'' +
+                ", date=" + date +
+                ", opponentName='" + opponentName + '\'' +
+                ", result=" + result +
+                '}';
     }
 }

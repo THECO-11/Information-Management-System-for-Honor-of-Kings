@@ -49,4 +49,14 @@ public class Equipment {
     public void setEquipmentType(EquipmentType equipmentType) {
         this.equipmentType = equipmentType;
     }
+
+    @Override
+    public String toString() {
+        return "Equipment{" +
+                "equipmentId='" + equipmentId + '\'' +
+                ", equipmentName='" + equipmentName + '\'' +
+                ", equipmentType=" + equipmentType +
+                ", score=" + score +
+                '}';
+    }
 }

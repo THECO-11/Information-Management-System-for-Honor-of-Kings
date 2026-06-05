@@ -68,6 +68,23 @@ public class Hero {
     }
 
     public void setEquipmentList(List<Equipment> equipmentList) {
-        this.equipmentList = equipmentList;
+        this.equipmentList = equipmentList == null ? new ArrayList<>() : equipmentList;
+    }
+
+    public void addEquipment(Equipment equipment) {
+        if (equipment != null) {
+            equipmentList.add(equipment);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Hero{" +
+                "heroId='" + heroId + '\'' +
+                ", heroName='" + heroName + '\'' +
+                ", heroType=" + heroType +
+                ", attack=" + attack +
+                ", defense=" + defense +
+                '}';
     }
 }
