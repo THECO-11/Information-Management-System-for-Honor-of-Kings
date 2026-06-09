@@ -28,13 +28,17 @@ The system supports two roles:
    Users can search for a hero by ID and view hero information and equipment.
 
 4. **Equipment Ranking**  
-   The system generates equipment rankings based on usage and rating.
+   The system generates equipment rankings based on equipment score. The current design sorts equipment by `score` in descending order. If two equipment items have the same score, the system uses equipment name and equipment ID as tie-breakers.
 
 5. **Match History**  
    Users can view match records for players and teams.
 
 6. **Leaderboard**  
-   The system generates player rankings based on win rate and level.
+   The system generates player rankings based on win rate, level, number of matches, and a composite score. The current composite score formula is:
+
+   `compositeScore = winRate * 0.7 + level * 0.3`
+
+   For player ranking, ties are handled in a stable order. For example, win-rate ranking uses win rate first, then level, then match count, then player name, and finally player ID.
 
 7. **Data Management**  
    Admins can add, edit, and delete system data.
@@ -185,6 +189,13 @@ Provides search functions.
 ### RankingService
 Generates leaderboard and equipment rankings.
 
+Current ranking design:
+- player win-rate ranking
+- player level ranking
+- player match-count ranking
+- player composite-score ranking
+- equipment score ranking
+
 ### AuthenticationService
 Handles login and role verification.
 
@@ -262,6 +273,103 @@ Finish **prompts.md**, **agent-log.md**, **reflection.md**, **git-history.txt**,
 
 ---
 ## 10. Testing Plan
+
+The project will use staged testing during development, not only one final test at the end. My current testing strategy is:
+
+1. After every two functional modules are completed, run one staged test round.
+2. Record the result of each staged test round in `docs/test-cases.md`.
+3. After all required modules are implemented, run one final full-system test round.
+
+### Current module grouping
+
+The project will be tested in these development groups:
+
+- Group 1: `Model` + `DataInitializer`
+- Group 2: `GameDataManager` + `SearchService`
+- Group 3: `RankingService` + `AuthenticationService`
+- Group 4: `FileStorageService` + `Main` menu flow
+
+### Staged testing method
+
+For each group, I will:
+
+- compile the project after implementation
+- test the new module functions
+- retest related old functions to check for regressions
+- record actual output and pass/fail result
+- note any bug found and fix it before moving on
+
+### Planned staged test rounds
+
+**Round 1: Data foundation test**  
+After finishing `Model` and `DataInitializer`, test:
+
+- initial dataset count
+- team member count
+- player-hero relationship
+- hero-equipment relationship
+
+**Round 2: Data management and search test**  
+After finishing `GameDataManager` and `SearchService`, test:
+
+- add, update, delete, and lookup operations
+- duplicate ID handling
+- player lookup
+- team lookup
+- hero lookup
+- player match history lookup
+- team match history lookup
+
+**Round 3: Ranking and authentication test**  
+After finishing `RankingService` and `AuthenticationService`, test:
+
+- win-rate leaderboard
+- level leaderboard
+- match-count leaderboard
+- composite-score leaderboard
+- equipment ranking
+- login and logout
+- admin/player role restriction
+
+**Round 4: Persistence and menu flow test**  
+After finishing `FileStorageService` and `Main`, test:
+
+- file save and load
+- menu navigation
+- invalid menu input handling
+- admin data management flow
+- player view flow
+
+### Final full-system test
+
+After all required modules are finished, I will run one final overall test round covering:
+
+- player lookup
+- team overview
+- hero details
+- equipment statistics
+- match history
+- leaderboard
+- authentication
+- admin data management
+- persistence
+- full menu flow
+
+### Test case record format
+
+Each test case record will include:
+
+- test ID
+- function tested
+- input
+- expected output
+- actual output
+- pass/fail result
+- bug found, if any
+
+### Current status
+
+I have already completed an early staged test round for the implemented data foundation and data-management stage. Future testing will continue in the "every two modules, then one test round" pattern, followed by one final full-system test.
 
 ---
 ## 11. Risk Analysis
