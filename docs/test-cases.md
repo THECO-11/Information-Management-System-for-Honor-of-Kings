@@ -2,23 +2,23 @@
 
 Project: AI-Assisted Information Management System for Honor of Kings
 
-Test date: 2026-06-08
+Test date: 2026-06-09
 
-Test scope: Current implementation stage. The project currently includes model classes, initial data creation, and basic `GameDataManager` data operations. Search, ranking, authentication, file storage, and menu functions are still implementation placeholders.
+Test scope: Current implementation stage. The project currently includes model classes, initial data creation, `GameDataManager`, `SearchService`, and `RankingService`. `AuthenticationService`, `FileStorageService`, and the final menu-driven application flow are still placeholders.
 
 Test environment:
 
 - Java: 21.0.10
-- Test method: temporary Java test runner compiled with project source files
+- Test method: temporary Java test runner executed from `Main`
 - Git operations: not used during this test
 
 ## Summary
 
-Implemented-stage tests passed: 11
+Implemented-stage tests passed: 19
 
-Placeholder checks passed: 4
+Placeholder checks passed: 2
 
-Requirement features still blocked: SearchService, RankingService, AuthenticationService, FileStorageService, console menu
+Requirement features still blocked: AuthenticationService, FileStorageService, final console menu
 
 ---
 
@@ -176,39 +176,123 @@ Result: Pass
 
 Bug found: None
 
-## Test 12: Player Lookup Feature Status
+## Test 12: Search Player By ID Or Name
 
 Function tested: `SearchService.searchPlayer`
 
-Input: Search keyword `P001`.
+Input: Search keywords `P001`, `ming`, and `unknown`.
 
-Expected output: Later implementation should return player information including team, level, win rate, owned heroes, and equipment.
+Expected output: `P001` and `ming` should return a player result; `unknown` should return empty.
 
-Actual output: `UnsupportedOperationException` was thrown because `SearchService` is still a placeholder.
+Actual output: `P001` and `ming` were found successfully, and `unknown` returned no result.
 
-Result: Blocked
+Result: Pass
 
-Bug found: Feature not implemented yet.
+Bug found: None
 
-## Test 13: Leaderboard Feature Status
+## Test 13: Search Team By ID Or Name
 
-Function tested: `RankingService.rankPlayersByWinRate`
+Function tested: `SearchService.searchTeam`
 
-Input: Limit `5`.
+Input: Search keywords `T001`, `moonlight`, and `unknown`.
 
-Expected output: Later implementation should return top players sorted by win rate with documented tie handling.
+Expected output: `T001` and `moonlight` should return a team result; `unknown` should return empty.
 
-Actual output: `UnsupportedOperationException` was thrown because `RankingService` is still a placeholder.
+Actual output: `T001` and `moonlight` were found successfully, and `unknown` returned no result.
 
-Result: Blocked
+Result: Pass
 
-Bug found: Feature not implemented yet.
+Bug found: None
 
-## Test 14: Authentication Feature Status
+## Test 14: Search Hero By ID Or Name
+
+Function tested: `SearchService.searchHero`
+
+Input: Search keywords `H001`, `li bai`, and `unknown`.
+
+Expected output: `H001` and `li bai` should return a hero result; `unknown` should return empty.
+
+Actual output: `H001` and `li bai` were found successfully, and `unknown` returned no result.
+
+Result: Pass
+
+Bug found: None
+
+## Test 15: Player Match History Lookup
+
+Function tested: `SearchService.findMatchesForPlayer`
+
+Input: Player IDs `P001` and `UNKNOWN`, with limits `20` and `3`.
+
+Expected output: Existing player returns non-empty match history sorted by date descending and limited by the requested number. Unknown player returns empty list.
+
+Actual output: `P001` returned match history, the result respected the limit and date order, and `UNKNOWN` returned an empty list.
+
+Result: Pass
+
+Bug found: None
+
+## Test 16: Team Match History Lookup
+
+Function tested: `SearchService.findMatchesForTeam`
+
+Input: Team IDs `T001` and `UNKNOWN`, with limit `3`.
+
+Expected output: Existing team returns recent matches sorted by date descending. Unknown team returns empty list.
+
+Actual output: `T001` returned 3 recent matches in descending date order, and `UNKNOWN` returned an empty list.
+
+Result: Pass
+
+Bug found: None
+
+## Test 17: Player Ranking By Win Rate And Level
+
+Function tested: `RankingService.rankPlayersByWinRate` and `RankingService.rankPlayersByLevel`
+
+Input: Limit `5`
+
+Expected output: Both rankings return 5 players in descending order. The top player should match the highest current dataset values.
+
+Actual output: Both rankings returned 5 players. `P006` ranked first in both win-rate ranking and level ranking. Ordering was verified as descending.
+
+Result: Pass
+
+Bug found: None
+
+## Test 18: Equipment Ranking By Score
+
+Function tested: `RankingService.rankEquipmentByScore`
+
+Input: Limit `5`
+
+Expected output: Ranking returns 5 equipment items sorted by score descending.
+
+Actual output: The ranking returned 5 equipment items. `E009` ranked first and `E001` ranked second. Ordering was verified as descending by score.
+
+Result: Pass
+
+Bug found: None
+
+## Test 19: Match Count And Composite Ranking
+
+Function tested: `RankingService.rankPlayersByMatchCount` and `RankingService.rankPlayersByCompositeScore`
+
+Input: Limit `5`
+
+Expected output: Both rankings return 5 players with correct descending order. Composite ranking should follow the documented formula.
+
+Actual output: Both rankings returned 5 players. Match-count ranking order was verified as descending. Composite ranking order was verified using `compositeScore = winRate * 0.7 + level * 0.3`, and `P006` ranked first.
+
+Result: Pass
+
+Bug found: None
+
+## Test 20: Authentication Feature Status
 
 Function tested: `AuthenticationService.login`
 
-Input: Username `admin`, password `admin123`.
+Input: Username `admin`, password `admin123`
 
 Expected output: Later implementation should log in the admin user and return the current user.
 
@@ -218,7 +302,7 @@ Result: Blocked
 
 Bug found: Feature not implemented yet.
 
-## Test 15: File Storage Feature Status
+## Test 21: File Storage Feature Status
 
 Function tested: `FileStorageService.save`
 
@@ -236,4 +320,4 @@ Bug found: Feature not implemented yet.
 
 ## Notes For Next Implementation Stage
 
-The next implementation stage should focus on `SearchService`, because it directly supports Player Lookup, Team Overview, and Hero Details. After that, `RankingService` should be implemented for Equipment Statistics and Leaderboard.
+The next implementation stage should focus on `AuthenticationService` and then the final menu-driven `Main` flow. After that, persistence can be connected through `FileStorageService`, followed by one larger full-system test round.
