@@ -10,14 +10,28 @@ public class InputHelper {
     }
 
     public String readText(String prompt) {
-        throw new UnsupportedOperationException("Text input handling is not implemented yet.");
+        System.out.print(prompt);
+        return scanner.nextLine().trim();
     }
 
     public int readInt(String prompt) {
-        throw new UnsupportedOperationException("Integer input handling is not implemented yet.");
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            try {
+                return Integer.parseInt(input);
+            } catch (NumberFormatException exception) {
+                System.out.println("Invalid number. Please enter an integer.");
+            }
+        }
     }
 
     public Scanner getScanner() {
         return scanner;
+    }
+
+    public void waitForEnter() {
+        System.out.print("Press Enter to continue...");
+        scanner.nextLine();
     }
 }

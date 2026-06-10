@@ -1,316 +1,421 @@
-import java.nio.file.Paths;
 import java.util.List;
-import enums.HeroType;
+import java.util.Scanner;
 import model.Equipment;
 import model.Hero;
 import model.MatchRecord;
+import model.Person;
 import model.Player;
 import model.Team;
 import service.AuthenticationService;
-import service.FileStorageService;
 import service.GameDataManager;
 import service.RankingService;
 import service.SearchService;
 import util.DataInitializer;
+import util.InputHelper;
 
 public class Main {
-    private static int passed = 0;
-    private static int failed = 0;
+    private final GameDataManager dataManager;
+    private final SearchService searchService;
+    private final RankingService rankingService;
+    private final AuthenticationService authenticationService;
+    private final InputHelper inputHelper;
+
+    public Main() {
+        this.dataManager = new DataInitializer().createInitialData();
+        this.searchService = new SearchService(dataManager);
+        this.rankingService = new RankingService(dataManager);
+        this.authenticationService = new AuthenticationService(dataManager);
+        this.inputHelper = new InputHelper(new Scanner(System.in));
+    }
 
     public static void main(String[] args) {
-        run("T01 initial dataset counts", Main::testInitialDatasetCounts);
-        run("T02 team member counts", Main::testTeamMemberCounts);
-        run("T03 player hero ownership", Main::testPlayerHeroOwnership);
-        run("T04 hero equipment compatibility", Main::testHeroEquipmentCompatibility);
-        run("T05 lookup by id", Main::testLookupById);
-        run("T06 team lookup by player id", Main::testTeamByPlayerId);
-        run("T07 duplicate player id rejected", Main::testDuplicatePlayerRejected);
-        run("T08 add player updates users and players", Main::testAddPlayer);
-        run("T09 delete player clears references", Main::testDeletePlayerReferences);
-        run("T10 update hero replaces references", Main::testUpdateHeroReferences);
-        run("T11 delete equipment clears hero references", Main::testDeleteEquipmentReferences);
-        run("T12 search player by id or name", Main::testSearchPlayer);
-        run("T13 search team by id or name", Main::testSearchTeam);
-        run("T14 search hero by id or name", Main::testSearchHero);
-        run("T15 player match history lookup", Main::testFindMatchesForPlayer);
-        run("T16 team match history lookup", Main::testFindMatchesForTeam);
-        run("T17 player ranking by win rate and level", Main::testRankPlayersByWinRateAndLevel);
-        run("T18 equipment ranking by score", Main::testRankEquipmentByScore);
-        run("T19 match count and composite ranking", Main::testRankPlayersByMatchCountAndComposite);
-        run("T20 authentication not implemented", Main::testAuthenticationNotImplemented);
-        run("T21 file storage not implemented", Main::testFileStorageNotImplemented);
-
-        System.out.println("SUMMARY passed=" + passed + " failed=" + failed);
+        new Main().start();
     }
 
-    private static GameDataManager createData() {
-        return new DataInitializer().createInitialData();
-    }
+    private void start() {
+        System.out.println("Honor of Kings Information Management System");
+        System.out.println("Default admin account: admin / admin123");
+        System.out.println("Example player account: ming / p123");
 
-    private static void testInitialDatasetCounts() {
-        GameDataManager data = createData();
-        check(data.getAdmins().size() == 1, "expected 1 admin");
-        check(data.getPlayers().size() == 15, "expected 15 players");
-        check(data.getHeroes().size() == 15, "expected 15 heroes");
-        check(data.getEquipmentItems().size() == 20, "expected 20 equipment items");
-        check(data.getTeams().size() == 3, "expected 3 teams");
-        check(data.getMatchRecords().size() == 10, "expected 10 match records");
-    }
-
-    private static void testTeamMemberCounts() {
-        for (Team team : createData().getTeams()) {
-            check(team.getMembers().size() == 5, "team should have 5 members: " + team.getTeamId());
-        }
-    }
-
-    private static void testPlayerHeroOwnership() {
-        for (Player player : createData().getPlayers()) {
-            check(player.getHeroes().size() >= 3, "player should own at least 3 heroes: " + player.getId());
-        }
-    }
-
-    private static void testHeroEquipmentCompatibility() {
-        for (Hero hero : createData().getHeroes()) {
-            check(hero.getEquipmentList().size() >= 2, "hero should have at least 2 equipment items: " + hero.getHeroId());
-        }
-    }
-
-    private static void testLookupById() {
-        GameDataManager data = createData();
-        check(data.getPlayerById("P001").isPresent(), "P001 should exist");
-        check(data.getHeroById("h001").isPresent(), "h001 lookup should be case-insensitive");
-        check(data.getEquipmentById("E001").isPresent(), "E001 should exist");
-        check(data.getTeamById("T001").isPresent(), "T001 should exist");
-        check(data.getMatchRecordById("M001").isPresent(), "M001 should exist");
-    }
-
-    private static void testTeamByPlayerId() {
-        Team team = createData().getTeamByPlayerId("P001")
-                .orElseThrow(() -> new AssertionError("team for P001 should exist"));
-        check("T001".equals(team.getTeamId()), "P001 should be in T001");
-    }
-
-    private static void testDuplicatePlayerRejected() {
-        GameDataManager data = createData();
-        expectIllegalArgument(() -> data.addPlayer(new Player("P001", "Duplicate", "dup", "p123", 1, 1.0)));
-    }
-
-    private static void testAddPlayer() {
-        GameDataManager data = createData();
-        Player player = new Player("P099", "New Player", "newplayer", "p123", 10, 50.0);
-        data.addPlayer(player);
-        check(data.getPlayers().size() == 16, "players should increase to 16");
-        check(data.getUsers().contains(player), "users should include new player");
-        check(data.getPlayerById("P099").isPresent(), "new player should be findable");
-    }
-
-    private static void testDeletePlayerReferences() {
-        GameDataManager data = createData();
-        data.deletePlayer("P001");
-        check(data.getPlayerById("P001").isEmpty(), "P001 should be deleted");
-        check(data.getUserById("P001").isEmpty(), "P001 should be removed from users");
-        for (Team team : data.getTeams()) {
-            check(team.getMembers().stream().noneMatch(player -> "P001".equals(player.getId())), "teams should not contain P001");
-        }
-        for (MatchRecord record : data.getMatchRecords()) {
-            check(record.getPlayers().stream().noneMatch(player -> "P001".equals(player.getId())), "matches should not contain P001");
-        }
-    }
-
-    private static void testUpdateHeroReferences() {
-        GameDataManager data = createData();
-        Hero oldHero = data.getHeroById("H001").orElseThrow();
-        Hero updatedHero = new Hero("H001", "Arthur Prime", HeroType.TANK, 80, 96);
-        data.updateHero(updatedHero);
-        check(data.getHeroById("H001").orElseThrow().getHeroName().equals("Arthur Prime"), "hero name should update");
-        check(data.getPlayers().stream().flatMap(player -> player.getHeroes().stream()).noneMatch(hero -> hero == oldHero), "player lists should not keep old hero reference");
-        check(data.getMatchRecords().stream().flatMap(record -> record.getHeroesUsed().stream()).noneMatch(hero -> hero == oldHero), "match lists should not keep old hero reference");
-    }
-
-    private static void testDeleteEquipmentReferences() {
-        GameDataManager data = createData();
-        Equipment equipment = data.getEquipmentById("E001").orElseThrow();
-        data.deleteEquipment("E001");
-        check(data.getEquipmentById("E001").isEmpty(), "E001 should be deleted");
-        for (Hero hero : data.getHeroes()) {
-            check(!hero.getEquipmentList().contains(equipment), "hero should not contain deleted equipment");
-        }
-    }
-
-    private static void testSearchPlayer() {
-        SearchService searchService = new SearchService(createData());
-        check(searchService.searchPlayer("P001").isPresent(), "P001 should be found");
-        check(searchService.searchPlayer("ming").isPresent(), "ming should be found by name or username");
-        check(searchService.searchPlayer("unknown").isEmpty(), "unknown player should not be found");
-    }
-
-    private static void testSearchTeam() {
-        SearchService searchService = new SearchService(createData());
-        check(searchService.searchTeam("T001").isPresent(), "T001 should be found");
-        check(searchService.searchTeam("moonlight").isPresent(), "team name search should work");
-        check(searchService.searchTeam("unknown").isEmpty(), "unknown team should not be found");
-    }
-
-    private static void testSearchHero() {
-        SearchService searchService = new SearchService(createData());
-        check(searchService.searchHero("H001").isPresent(), "H001 should be found");
-        check(searchService.searchHero("li bai").isPresent(), "hero name search should work");
-        check(searchService.searchHero("unknown").isEmpty(), "unknown hero should not be found");
-    }
-
-    private static void testFindMatchesForPlayer() {
-        SearchService searchService = new SearchService(createData());
-        List<MatchRecord> matches = searchService.findMatchesForPlayer("P001", 3);
-        check(!searchService.findMatchesForPlayer("P001", 20).isEmpty(), "P001 should have match history");
-        check(matches.size() <= 3, "player match history should respect the limit");
-        check(isSortedByDateDesc(matches), "player match history should be sorted by date desc");
-        check(searchService.findMatchesForPlayer("UNKNOWN", 3).isEmpty(), "unknown player should return no matches");
-    }
-
-    private static void testFindMatchesForTeam() {
-        SearchService searchService = new SearchService(createData());
-        List<MatchRecord> matches = searchService.findMatchesForTeam("T001", 3);
-        check(matches.size() == 3, "T001 should return last 3 matches");
-        check(searchService.findMatchesForTeam("T001", 20).size() > 0, "T001 should have match history");
-        check(isSortedByDateDesc(matches), "team match history should be sorted by date desc");
-        check(searchService.findMatchesForTeam("UNKNOWN", 3).isEmpty(), "unknown team should return no matches");
-    }
-
-    private static void testRankPlayersByWinRateAndLevel() {
-        RankingService rankingService = new RankingService(createData());
-        List<Player> winRateRanking = rankingService.rankPlayersByWinRate(5);
-        List<Player> levelRanking = rankingService.rankPlayersByLevel(5);
-
-        check(winRateRanking.size() == 5, "win rate ranking should respect the limit");
-        check("P006".equals(winRateRanking.get(0).getId()), "P006 should rank first by win rate");
-        check(isSortedByWinRate(winRateRanking), "win rate ranking should be sorted");
-
-        check(levelRanking.size() == 5, "level ranking should respect the limit");
-        check("P006".equals(levelRanking.get(0).getId()), "P006 should rank first by level");
-        check(isSortedByLevel(levelRanking), "level ranking should be sorted");
-    }
-
-    private static void testRankEquipmentByScore() {
-        RankingService rankingService = new RankingService(createData());
-        List<Equipment> ranking = rankingService.rankEquipmentByScore(5);
-
-        check(ranking.size() == 5, "equipment ranking should respect the limit");
-        check("E009".equals(ranking.get(0).getEquipmentId()), "E009 should rank first by score");
-        check("E001".equals(ranking.get(1).getEquipmentId()), "E001 should rank second by score");
-        check(isSortedByEquipmentScore(ranking), "equipment ranking should be sorted");
-    }
-
-    private static void testRankPlayersByMatchCountAndComposite() {
-        RankingService rankingService = new RankingService(createData());
-        List<Player> matchCountRanking = rankingService.rankPlayersByMatchCount(5);
-        List<Player> compositeRanking = rankingService.rankPlayersByCompositeScore(5);
-
-        check(matchCountRanking.size() == 5, "match count ranking should respect the limit");
-        check(isSortedByMatchCount(matchCountRanking), "match count ranking should be sorted");
-
-        check(compositeRanking.size() == 5, "composite ranking should respect the limit");
-        check("P006".equals(compositeRanking.get(0).getId()), "P006 should rank first by composite score");
-        check(isSortedByCompositeScore(compositeRanking), "composite ranking should be sorted");
-    }
-
-    private static void testAuthenticationNotImplemented() {
-        expectUnsupported(() -> new AuthenticationService(createData()).login("admin", "admin123"));
-    }
-
-    private static void testFileStorageNotImplemented() {
-        expectUnsupported(() -> new FileStorageService(Paths.get("data")).save(createData()));
-    }
-
-    private static boolean isSortedByDateDesc(List<MatchRecord> matches) {
-        for (int i = 1; i < matches.size(); i++) {
-            if (matches.get(i - 1).getDate().isBefore(matches.get(i).getDate())) {
-                return false;
+        boolean running = true;
+        while (running) {
+            printWelcomeMenu();
+            int choice = inputHelper.readInt("Choose an option: ");
+            switch (choice) {
+                case 1:
+                    handleLogin();
+                    break;
+                case 2:
+                    handleSearchHero();
+                    break;
+                case 3:
+                    handleSearchTeam();
+                    break;
+                case 4:
+                    handlePlayerLeaderboard();
+                    break;
+                case 5:
+                    handleEquipmentRanking();
+                    break;
+                case 0:
+                    running = false;
+                    System.out.println("Goodbye.");
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+                    break;
             }
         }
-        return true;
     }
 
-    private static boolean isSortedByWinRate(List<Player> players) {
-        for (int i = 1; i < players.size(); i++) {
-            if (players.get(i - 1).getWinRate() < players.get(i).getWinRate()) {
-                return false;
+    private void printWelcomeMenu() {
+        System.out.println();
+        System.out.println("=== Main Menu ===");
+        System.out.println("1. Login");
+        System.out.println("2. Search Hero");
+        System.out.println("3. Search Team");
+        System.out.println("4. View Player Leaderboard");
+        System.out.println("5. View Equipment Ranking");
+        System.out.println("0. Exit");
+    }
+
+    private void handleLogin() {
+        String username = inputHelper.readText("Username: ");
+        String password = inputHelper.readText("Password: ");
+        Person user = authenticationService.login(username, password).orElse(null);
+        if (user == null) {
+            System.out.println("Login failed. Please check your username and password.");
+            return;
+        }
+
+        System.out.println("Login successful. Welcome, " + user.getName() + ".");
+        if (authenticationService.isCurrentUserAdmin()) {
+            runAdminMenu();
+        } else {
+            runPlayerMenu();
+        }
+    }
+
+    private void runAdminMenu() {
+        boolean inMenu = true;
+        while (inMenu && authenticationService.isLoggedIn()) {
+            System.out.println();
+            System.out.println("=== Admin Menu ===");
+            System.out.println("1. Search Player");
+            System.out.println("2. Search Team");
+            System.out.println("3. Search Hero");
+            System.out.println("4. View Player Leaderboard");
+            System.out.println("5. View Equipment Ranking");
+            System.out.println("6. View Player Match History");
+            System.out.println("7. View Team Match History");
+            System.out.println("8. View Data Summary");
+            System.out.println("9. Logout");
+
+            int choice = inputHelper.readInt("Choose an option: ");
+            switch (choice) {
+                case 1:
+                    handleSearchPlayer();
+                    break;
+                case 2:
+                    handleSearchTeam();
+                    break;
+                case 3:
+                    handleSearchHero();
+                    break;
+                case 4:
+                    handlePlayerLeaderboard();
+                    break;
+                case 5:
+                    handleEquipmentRanking();
+                    break;
+                case 6:
+                    handlePlayerMatchHistory();
+                    break;
+                case 7:
+                    handleTeamMatchHistory();
+                    break;
+                case 8:
+                    printDataSummary();
+                    break;
+                case 9:
+                    authenticationService.logout();
+                    inMenu = false;
+                    System.out.println("Logged out.");
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+                    break;
             }
         }
-        return true;
     }
 
-    private static boolean isSortedByLevel(List<Player> players) {
-        for (int i = 1; i < players.size(); i++) {
-            if (players.get(i - 1).getLevel() < players.get(i).getLevel()) {
-                return false;
+    private void runPlayerMenu() {
+        boolean inMenu = true;
+        while (inMenu && authenticationService.isLoggedIn()) {
+            System.out.println();
+            System.out.println("=== Player Menu ===");
+            System.out.println("1. View My Profile");
+            System.out.println("2. View My Match History");
+            System.out.println("3. Search Team");
+            System.out.println("4. Search Hero");
+            System.out.println("5. View Player Leaderboard");
+            System.out.println("6. View Equipment Ranking");
+            System.out.println("7. Logout");
+
+            int choice = inputHelper.readInt("Choose an option: ");
+            switch (choice) {
+                case 1:
+                    printPlayerDetails((Player) authenticationService.getCurrentUser());
+                    break;
+                case 2:
+                    handleCurrentPlayerMatchHistory();
+                    break;
+                case 3:
+                    handleSearchTeam();
+                    break;
+                case 4:
+                    handleSearchHero();
+                    break;
+                case 5:
+                    handlePlayerLeaderboard();
+                    break;
+                case 6:
+                    handleEquipmentRanking();
+                    break;
+                case 7:
+                    authenticationService.logout();
+                    inMenu = false;
+                    System.out.println("Logged out.");
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+                    break;
             }
         }
-        return true;
     }
 
-    private static boolean isSortedByMatchCount(List<Player> players) {
-        for (int i = 1; i < players.size(); i++) {
-            if (players.get(i - 1).getMatchHistory().size() < players.get(i).getMatchHistory().size()) {
-                return false;
+    private void handleSearchPlayer() {
+        String keyword = inputHelper.readText("Enter player ID, name, or username: ");
+        Player player = searchService.searchPlayer(keyword).orElse(null);
+        if (player == null) {
+            System.out.println("Player not found.");
+            return;
+        }
+        printPlayerDetails(player);
+    }
+
+    private void handleSearchTeam() {
+        String keyword = inputHelper.readText("Enter team ID or name: ");
+        Team team = searchService.searchTeam(keyword).orElse(null);
+        if (team == null) {
+            System.out.println("Team not found.");
+            return;
+        }
+        printTeamDetails(team);
+    }
+
+    private void handleSearchHero() {
+        String keyword = inputHelper.readText("Enter hero ID or name: ");
+        Hero hero = searchService.searchHero(keyword).orElse(null);
+        if (hero == null) {
+            System.out.println("Hero not found.");
+            return;
+        }
+        printHeroDetails(hero);
+    }
+
+    private void handlePlayerMatchHistory() {
+        String playerId = inputHelper.readText("Enter player ID: ");
+        int limit = inputHelper.readInt("How many recent matches to show? ");
+        List<MatchRecord> matches = searchService.findMatchesForPlayer(playerId, limit);
+        if (matches.isEmpty()) {
+            System.out.println("No match history found for that player.");
+            return;
+        }
+        printMatchRecords(matches);
+    }
+
+    private void handleTeamMatchHistory() {
+        String teamId = inputHelper.readText("Enter team ID: ");
+        int limit = inputHelper.readInt("How many recent matches to show? ");
+        List<MatchRecord> matches = searchService.findMatchesForTeam(teamId, limit);
+        if (matches.isEmpty()) {
+            System.out.println("No match history found for that team.");
+            return;
+        }
+        printMatchRecords(matches);
+    }
+
+    private void handleCurrentPlayerMatchHistory() {
+        Player currentPlayer = (Player) authenticationService.getCurrentUser();
+        int limit = inputHelper.readInt("How many recent matches to show? ");
+        List<MatchRecord> matches = searchService.findMatchesForPlayer(currentPlayer.getId(), limit);
+        if (matches.isEmpty()) {
+            System.out.println("No match history found.");
+            return;
+        }
+        printMatchRecords(matches);
+    }
+
+    private void handlePlayerLeaderboard() {
+        System.out.println();
+        System.out.println("=== Player Leaderboard ===");
+        System.out.println("1. By Win Rate");
+        System.out.println("2. By Level");
+        System.out.println("3. By Match Count");
+        System.out.println("4. By Composite Score");
+
+        int type = inputHelper.readInt("Choose ranking type: ");
+        int limit = inputHelper.readInt("How many players to show? ");
+        List<Player> players;
+        switch (type) {
+            case 1:
+                players = rankingService.rankPlayersByWinRate(limit);
+                printPlayerRanking(players, "Win Rate");
+                break;
+            case 2:
+                players = rankingService.rankPlayersByLevel(limit);
+                printPlayerRanking(players, "Level");
+                break;
+            case 3:
+                players = rankingService.rankPlayersByMatchCount(limit);
+                printPlayerRanking(players, "Match Count");
+                break;
+            case 4:
+                players = rankingService.rankPlayersByCompositeScore(limit);
+                printPlayerRanking(players, "Composite Score");
+                break;
+            default:
+                System.out.println("Invalid ranking type.");
+                break;
+        }
+    }
+
+    private void handleEquipmentRanking() {
+        int limit = inputHelper.readInt("How many equipment items to show? ");
+        List<Equipment> ranking = rankingService.rankEquipmentByScore(limit);
+        System.out.println();
+        System.out.println("=== Equipment Ranking ===");
+        for (int i = 0; i < ranking.size(); i++) {
+            Equipment equipment = ranking.get(i);
+            System.out.println((i + 1) + ". " + equipment.getEquipmentName()
+                    + " (" + equipment.getEquipmentId() + ")"
+                    + " | Type: " + equipment.getEquipmentType()
+                    + " | Score: " + equipment.getScore());
+        }
+    }
+
+    private void printPlayerDetails(Player player) {
+        System.out.println();
+        System.out.println("=== Player Details ===");
+        System.out.println("ID: " + player.getId());
+        System.out.println("Name: " + player.getName());
+        System.out.println("Username: " + player.getUsername());
+        System.out.println("Level: " + player.getLevel());
+        System.out.println("Win Rate: " + player.getWinRate());
+
+        Team team = dataManager.getTeamByPlayerId(player.getId()).orElse(null);
+        System.out.println("Team: " + (team == null ? "N/A" : team.getTeamName()));
+
+        System.out.println("Heroes:");
+        for (Hero hero : player.getHeroes()) {
+            System.out.println("- " + hero.getHeroName() + " (" + hero.getHeroId() + ")");
+            for (Equipment equipment : hero.getEquipmentList()) {
+                System.out.println("  * " + equipment.getEquipmentName() + " [" + equipment.getEquipmentType() + "]");
             }
         }
-        return true;
     }
 
-    private static boolean isSortedByEquipmentScore(List<Equipment> equipmentList) {
-        for (int i = 1; i < equipmentList.size(); i++) {
-            if (equipmentList.get(i - 1).getScore() < equipmentList.get(i).getScore()) {
-                return false;
+    private void printTeamDetails(Team team) {
+        System.out.println();
+        System.out.println("=== Team Details ===");
+        System.out.println("ID: " + team.getTeamId());
+        System.out.println("Name: " + team.getTeamName());
+        System.out.println("Members:");
+        for (Player member : team.getMembers()) {
+            System.out.println("- " + member.getName() + " (" + member.getId() + ")");
+        }
+
+        double averageLevel = team.getMembers().stream()
+                .mapToInt(Player::getLevel)
+                .average()
+                .orElse(0.0);
+
+        List<MatchRecord> teamMatches = searchService.findMatchesForTeam(team.getTeamId(), dataManager.getMatchRecords().size());
+        long wins = teamMatches.stream().filter(match -> match.getResult() == enums.MatchResult.WIN).count();
+        double winRate = teamMatches.isEmpty() ? 0.0 : (wins * 100.0 / teamMatches.size());
+
+        Player topPlayer = team.getMembers().stream()
+                .max((first, second) -> Double.compare(first.getWinRate(), second.getWinRate()))
+                .orElse(null);
+
+        System.out.println("Average Level: " + String.format("%.2f", averageLevel));
+        System.out.println("Total Matches: " + teamMatches.size());
+        System.out.println("Win Rate: " + String.format("%.2f", winRate));
+        System.out.println("Top Player: " + (topPlayer == null ? "N/A" : topPlayer.getName()));
+    }
+
+    private void printHeroDetails(Hero hero) {
+        System.out.println();
+        System.out.println("=== Hero Details ===");
+        System.out.println("ID: " + hero.getHeroId());
+        System.out.println("Name: " + hero.getHeroName());
+        System.out.println("Type: " + hero.getHeroType());
+        System.out.println("Attack: " + hero.getAttack());
+        System.out.println("Defense: " + hero.getDefense());
+
+        System.out.println("Compatible Equipment:");
+        for (Equipment equipment : hero.getEquipmentList()) {
+            System.out.println("- " + equipment.getEquipmentName() + " | Type: " + equipment.getEquipmentType() + " | Score: " + equipment.getScore());
+        }
+
+        System.out.println("Owned By:");
+        for (Player player : dataManager.getPlayers()) {
+            boolean ownsHero = player.getHeroes().stream()
+                    .anyMatch(playerHero -> playerHero.getHeroId().equalsIgnoreCase(hero.getHeroId()));
+            if (ownsHero) {
+                System.out.println("- " + player.getName() + " (" + player.getId() + ")");
             }
         }
-        return true;
     }
 
-    private static boolean isSortedByCompositeScore(List<Player> players) {
-        for (int i = 1; i < players.size(); i++) {
-            if (calculateCompositeScore(players.get(i - 1)) < calculateCompositeScore(players.get(i))) {
-                return false;
-            }
+    private void printMatchRecords(List<MatchRecord> matches) {
+        System.out.println();
+        System.out.println("=== Match History ===");
+        for (MatchRecord match : matches) {
+            System.out.println(match.getMatchId()
+                    + " | Date: " + match.getDate()
+                    + " | Opponent: " + match.getOpponentName()
+                    + " | Result: " + match.getResult());
         }
-        return true;
     }
 
-    private static double calculateCompositeScore(Player player) {
+    private void printPlayerRanking(List<Player> players, String rankingType) {
+        System.out.println();
+        System.out.println("=== Player Ranking: " + rankingType + " ===");
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            System.out.println((i + 1) + ". " + player.getName()
+                    + " (" + player.getId() + ")"
+                    + " | Level: " + player.getLevel()
+                    + " | Win Rate: " + player.getWinRate()
+                    + " | Matches: " + player.getMatchHistory().size()
+                    + " | Composite: " + String.format("%.2f", calculateCompositeScore(player)));
+        }
+    }
+
+    private void printDataSummary() {
+        System.out.println();
+        System.out.println("=== Data Summary ===");
+        System.out.println("Admins: " + dataManager.getAdmins().size());
+        System.out.println("Players: " + dataManager.getPlayers().size());
+        System.out.println("Heroes: " + dataManager.getHeroes().size());
+        System.out.println("Equipment: " + dataManager.getEquipmentItems().size());
+        System.out.println("Teams: " + dataManager.getTeams().size());
+        System.out.println("Match Records: " + dataManager.getMatchRecords().size());
+    }
+
+    private double calculateCompositeScore(Player player) {
         return player.getWinRate() * 0.7 + player.getLevel() * 0.3;
-    }
-
-    private static void run(String name, Runnable test) {
-        try {
-            test.run();
-            passed++;
-            System.out.println("PASS " + name);
-        } catch (Throwable error) {
-            failed++;
-            System.out.println("FAIL " + name + " -> " + error.getMessage());
-        }
-    }
-
-    private static void check(boolean condition, String message) {
-        if (!condition) {
-            throw new AssertionError(message);
-        }
-    }
-
-    private static void expectIllegalArgument(Runnable runnable) {
-        try {
-            runnable.run();
-            throw new AssertionError("expected IllegalArgumentException");
-        } catch (IllegalArgumentException expected) {
-            // Expected path.
-        }
-    }
-
-    private static void expectUnsupported(Runnable runnable) {
-        try {
-            runnable.run();
-            throw new AssertionError("expected UnsupportedOperationException");
-        } catch (UnsupportedOperationException expected) {
-            // Expected path for unfinished features.
-        }
     }
 }
