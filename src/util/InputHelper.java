@@ -26,6 +26,18 @@ public class InputHelper {
         }
     }
 
+    public double readDouble(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            try {
+                return Double.parseDouble(input);
+            } catch (NumberFormatException exception) {
+                System.out.println("Invalid number. Please enter a decimal number.");
+            }
+        }
+    }
+
     public Scanner getScanner() {
         return scanner;
     }
