@@ -2,23 +2,42 @@
 
 Project: AI-Assisted Information Management System for Honor of Kings
 
-Test date: 2026-06-09
+Test date: 2026-06-11
 
-Test scope: Current implementation stage. The project currently includes model classes, initial data creation, `GameDataManager`, `SearchService`, and `RankingService`. `AuthenticationService`, `FileStorageService`, and the final menu-driven application flow are still placeholders.
+Test scope: Combined staged test record up to the current implementation stage. The project currently includes model classes, initial data creation, `GameDataManager`, `SearchService`, `RankingService`, `AuthenticationService`, `FileStorageService`, and the current console `Main` flow.
 
 Test environment:
 
 - Java: 21.0.10
-- Test method: temporary Java test runner executed from `Main`
+- Test method:
+  - previous staged checks for data foundation, data management, search, and ranking
+  - temporary Java service test runner compiled outside the repository for current-stage service verification
+  - interactive console test runs executed from `Main`
 - Git operations: not used during this test
 
 ## Summary
 
-Implemented-stage tests passed: 19
+Implemented-stage tests passed: 30
 
-Placeholder checks passed: 2
+Blocked tests: 0
 
-Requirement features still blocked: AuthenticationService, FileStorageService, final console menu
+Current requirement features covered in staged tests:
+
+- player lookup
+- team overview
+- hero details
+- equipment ranking
+- match history
+- leaderboard
+- authentication
+- admin data management flow
+- file save/load
+- console menu flow
+
+Remaining work outside this staged round:
+
+- one final full-system test round after all polishing is done
+- final user-written overall test report if needed
 
 ---
 
@@ -288,36 +307,167 @@ Result: Pass
 
 Bug found: None
 
-## Test 20: Authentication Feature Status
+## Test 20: Authentication Login And Role Detection
 
-Function tested: `AuthenticationService.login`
+Function tested: `AuthenticationService.login`, `logout`, and role checks
 
-Input: Username `admin`, password `admin123`
+Input: Login with `admin / admin123`, then `ming / p123`, then `ming / wrong`.
 
-Expected output: Later implementation should log in the admin user and return the current user.
+Expected output: Admin login succeeds with role `ADMIN`, player login succeeds with role `PLAYER`, failed login returns empty result and does not keep a logged-in state.
 
-Actual output: `UnsupportedOperationException` was thrown because `AuthenticationService` is still a placeholder.
+Actual output: Admin login succeeded with role `ADMIN`, player login succeeded with role `PLAYER`, and failed login returned empty result with `isLoggedIn = false`.
 
-Result: Blocked
+Result: Pass
 
-Bug found: Feature not implemented yet.
+Bug found: None
 
-## Test 21: File Storage Feature Status
+## Test 21: File Save Creates CSV Files
 
 Function tested: `FileStorageService.save`
 
-Input: Save current initialized data.
+Input: Save initialized data to a temporary test data directory.
 
-Expected output: Later implementation should save system data to a documented file format.
+Expected output: The service creates CSV files for admins, players, equipment, heroes, teams, and matches.
 
-Actual output: `UnsupportedOperationException` was thrown because `FileStorageService` is still a placeholder.
+Actual output: `admins.csv`, `players.csv`, `equipment.csv`, `heroes.csv`, `teams.csv`, and `matches.csv` were all created successfully.
 
-Result: Blocked
+Result: Pass
 
-Bug found: Feature not implemented yet.
+Bug found: None
+
+## Test 22: File Load Restores Counts And Relations
+
+Function tested: `FileStorageService.load`
+
+Input: Load data from the saved temporary CSV files.
+
+Expected output: Loaded data keeps the same counts and restores player-hero, player-match, team-member, and user-list relationships.
+
+Actual output: Loaded data returned 1 admin, 15 players, 15 heroes, 20 equipment items, 3 teams, and 10 match records. `P001` kept 3 heroes and non-empty match history, `T001` kept 5 members, and the user list count was 16.
+
+Result: Pass
+
+Bug found: None
+
+## Test 23: Main Menu Invalid Input Handling
+
+Function tested: `Main` welcome menu input validation
+
+Input: Enter `abc`, then `0`.
+
+Expected output: The system rejects the invalid menu input, prompts again, and then exits cleanly.
+
+Actual output: The console printed `Invalid number. Please enter an integer.` and then accepted `0` and exited with `Goodbye.`
+
+Result: Pass
+
+Bug found: None
+
+## Test 24: Admin Add Player Flow
+
+Function tested: `Main` admin player-management menu
+
+Input: Login as admin, add player `P099`, assign heroes `H001,H002`, assign team `T001`, then list players and search `P099`.
+
+Expected output: The player is added successfully, appears in the player list, and search shows the new player details with assigned team and heroes.
+
+Actual output: `Player added successfully.` was shown, `P099 | TestUser | Level: 10 | Team: Dragon Vanguard` appeared in the list, and searching `P099` displayed the correct profile, team, and hero details.
+
+Result: Pass
+
+Bug found: None
+
+## Test 25: Admin Update Player Flow
+
+Function tested: `Main` admin player update flow
+
+Input: Update `P099` to `TestUserUpdated`, change username, level, win rate, hero list to `H003`, and team to `T002`, then search `P099`.
+
+Expected output: Updated player data is shown correctly after the edit.
+
+Actual output: `Player updated successfully.` was shown, and searching `P099` displayed name `TestUserUpdated`, username `testuser2`, level `11`, win rate `55.0`, team `Moonlight Guard`, and hero `H003`.
+
+Result: Pass
+
+Bug found: None
+
+## Test 26: Admin Delete Player Flow
+
+Function tested: `Main` admin player delete flow
+
+Input: Delete `P099`, list players, then search `P099`.
+
+Expected output: The player is removed from the list and cannot be found anymore.
+
+Actual output: `Player deleted successfully.` was shown, `P099` no longer appeared in the player list, and searching `P099` returned `Player not found.`
+
+Result: Pass
+
+Bug found: None
+
+## Test 27: Admin Submenu Navigation And Listing
+
+Function tested: `Main` admin menu navigation for heroes, equipment, teams, and match records
+
+Input: Login as admin, open each management submenu, use `List` in each one, and return to the admin menu.
+
+Expected output: Each submenu opens correctly and lists the current dataset.
+
+Actual output:
+
+- Hero list showed all 15 heroes.
+- Equipment list showed all 20 equipment items.
+- Team list showed all 3 teams.
+- Match record list showed all 10 match records.
+
+Result: Pass
+
+Bug found: None
+
+## Test 28: Menu Save And Load Flow
+
+Function tested: `Main` admin save/load menu options
+
+Input: Login as admin, choose `Save Data`, then choose `Load Data`.
+
+Expected output: Save reports the output directory, and load completes successfully and returns to the welcome flow with a fresh login required.
+
+Actual output: The console printed `Data saved to ...\\out\\data.` and then `Data loaded successfully. Please login again.` before returning to the main menu.
+
+Result: Pass
+
+Bug found: None
+
+## Test 29: Player Profile And Match History Flow
+
+Function tested: `Main` player menu basic view flow
+
+Input: Login as `ming / p123`, view profile, then view 2 recent matches with limit `2`.
+
+Expected output: Profile information is shown correctly, and recent match history is displayed without admin permissions.
+
+Actual output: The player profile for `P001` was displayed correctly. Match history was shown successfully, and with the entered limit the console displayed the recent match records available to that player.
+
+Result: Pass
+
+Bug found: None
+
+## Test 30: Player Search And Ranking Flow
+
+Function tested: `Main` player-side search and ranking features
+
+Input: Login as `ming / p123`, search team `T001`, search hero `H001`, view win-rate leaderboard with limit `3`, and view equipment ranking with limit `5`.
+
+Expected output: Player role can access public search and ranking features normally.
+
+Actual output: Team details, hero details, top 3 win-rate leaderboard, and top 5 equipment ranking were all displayed successfully from the player menu.
+
+Result: Pass
+
+Bug found: None
 
 ---
 
-## Notes For Next Implementation Stage
+## Notes For Next Test Stage
 
-The next implementation stage should focus on `AuthenticationService` and then the final menu-driven `Main` flow. After that, persistence can be connected through `FileStorageService`, followed by one larger full-system test round.
+This staged round confirms that `AuthenticationService`, `FileStorageService`, and the current `Main` menu flow are working at a basic implementation level. The next test stage should be the final full-system round, with broader regression coverage and any polish fixes found during manual use.
