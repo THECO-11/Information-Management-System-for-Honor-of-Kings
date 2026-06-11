@@ -374,6 +374,126 @@ I have already completed an early staged test round for the implemented data fou
 ---
 ## 11. Risk Analysis
 
+### 11.1 Data Consistency Risk
+
+The project contains many object relationships:
+
+- team -> players
+- player -> heroes
+- player -> match history
+- match record -> players
+- match record -> heroes used
+
+If one object is added, updated, deleted, saved, or loaded incorrectly, related references may become inconsistent.
+
+Current attention points:
+
+- admin menu operations already modify multiple related collections
+- file loading must rebuild object relationships correctly
+- update and delete logic can easily miss one reference path
+
+Mitigation:
+
+- keep all relationship update logic centralized in `GameDataManager`
+- retest reference cleanup after each CRUD-related change
+- include save/load regression checks in the final full-system test
+
+### 11.2 Partial Update Risk In Menu Flow
+
+Some admin operations in `Main` currently perform multiple steps in sequence, such as:
+
+- create or update a player
+- then assign the player to a team
+
+If the second step fails after the first step already changed the data, the system may end in a partially updated state.
+
+Impact:
+
+- the console may report failure even though part of the data was already changed
+- player-team relationships may become temporarily inconsistent
+
+Mitigation:
+
+- review multi-step admin operations before final submission
+- validate all dependent input before writing changes
+- if needed, refactor these flows into safer service-layer methods
+
+### 11.3 Persistence Risk
+
+The project now uses CSV files for persistence. This is simple and suitable for the assignment, but it has some risks:
+
+- manual CSV parsing may fail on malformed data
+- missing files may produce incomplete loaded data
+- interrupted save operations may leave partially written files
+
+Impact:
+
+- data loss
+- incomplete reload after save/load
+- hard-to-debug relationship errors after loading
+
+Mitigation:
+
+- keep the CSV format stable and documented
+- test save/load after meaningful CRUD operations
+- verify loaded counts and loaded relationships, not only file existence
+
+### 11.4 Authentication And Account Risk
+
+The current authentication design is intentionally lightweight, but it still has project-level risks:
+
+- passwords are stored in plain text
+- username uniqueness is not strongly enforced in the current data rules
+- duplicate usernames could make login behavior ambiguous
+
+For this course project, the simple approach is acceptable, but it should be clearly understood as a simplified design rather than a production-safe solution.
+
+Mitigation:
+
+- keep default accounts limited to demo use
+- avoid adding duplicate usernames during manual testing
+- mention the simplified security model in the final reflection or README
+
+### 11.5 Requirement Coverage Risk
+
+The project already covers the main required modules, but there is still a risk that the final submission looks complete while some edge cases are not fully aligned with the requirement wording.
+
+Examples:
+
+- admin data management works, but some flows still need stronger validation
+- persistence works, but abnormal file states are not deeply handled
+- the console UI works, but usability and error recovery can still be improved
+
+Mitigation:
+
+- use one final full-system test round based directly on the requirement list
+- review each requirement item one by one before final submission
+- compare actual implemented behavior with both `requirement.pdf` and `plan.md`
+
+### 11.6 Time And Scope Risk
+
+Because this project has already gone through several AI-assisted iterations, there is a risk of spending too much time polishing lower-priority details while delaying the final integration and submission materials.
+
+Mitigation:
+
+- prioritize correctness and requirement coverage over extra refactoring
+- finish the final full-system test before cosmetic cleanup
+- complete remaining documentation only after implementation and testing are stable
+
+### 11.7 Current Overall Risk Judgment
+
+At the current stage, the project risk is **medium**:
+
+- the architecture is clear enough for a course project
+- core modules are implemented and staged-tested
+- the main remaining risk is not missing architecture, but inconsistent edge-case behavior during multi-step admin operations and persistence-related failure scenarios
+
+So the next development priority should be:
+
+1. final code review and small bug fixes
+2. final full-system test
+3. final submission documents
+
 ---
 ## 12. Final Reflection Placeholder
 
