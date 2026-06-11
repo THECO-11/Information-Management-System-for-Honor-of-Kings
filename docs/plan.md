@@ -494,6 +494,19 @@ So the next development priority should be:
 2. final full-system test
 3. final submission documents
 
+### 11.8 Current Mitigation Status
+
+After the latest implementation revision, several high-value mitigations have already been applied in code:
+
+- username uniqueness is now enforced for system users
+- player add/update flow validates the target team before changing stored player data
+- team management now keeps one-player-one-team behavior more consistent by normalizing team membership
+- match record update no longer depends on a delete-then-add menu flow
+- file loading now rejects missing required CSV files instead of silently loading partial data
+- file saving now writes through temporary files before replacing the target CSV files
+
+Residual risk still exists, but the most important consistency and delivery risks identified in the previous review have been reduced.
+
 ---
 ## 12. Final Reflection Placeholder
 

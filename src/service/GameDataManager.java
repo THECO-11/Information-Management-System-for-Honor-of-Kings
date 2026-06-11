@@ -79,6 +79,7 @@ public class GameDataManager {
     public void addPlayer(Player player) {
         requireNotNull(player, "player");
         requireUniquePersonId(player.getId());
+        requireUniqueUsername(player.getUsername(), null);
         players.add(player);
         users.add(player);
     }
@@ -112,6 +113,8 @@ public class GameDataManager {
     public void addTeam(Team team) {
         requireNotNull(team, "team");
         requireUniqueTeamId(team.getTeamId());
+        normalizeTeamMemberships(team.getMembers(), null);
+        team.setMembers(removeDuplicatePlayers(team.getMembers()));
         teams.add(team);
     }
 
@@ -129,6 +132,7 @@ public class GameDataManager {
     public void addAdmin(Admin admin) {
         requireNotNull(admin, "admin");
         requireUniquePersonId(admin.getId());
+        requireUniqueUsername(admin.getUsername(), null);
         admins.add(admin);
         users.add(admin);
     }
@@ -190,6 +194,7 @@ public class GameDataManager {
 
     public void updatePlayer(Player updatedPlayer) {
         requireNotNull(updatedPlayer, "updatedPlayer");
+        requireUniqueUsername(updatedPlayer.getUsername(), updatedPlayer.getId());
         Player existingPlayer = getPlayerById(updatedPlayer.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Player not found: " + updatedPlayer.getId()));
         replaceById(players, updatedPlayer, updatedPlayer.getId(), "Player not found: ");
@@ -199,6 +204,7 @@ public class GameDataManager {
 
     public void updateAdmin(Admin updatedAdmin) {
         requireNotNull(updatedAdmin, "updatedAdmin");
+        requireUniqueUsername(updatedAdmin.getUsername(), updatedAdmin.getId());
         replaceById(admins, updatedAdmin, updatedAdmin.getId(), "Admin not found: ");
         replaceUser(updatedAdmin);
     }
@@ -221,15 +227,24 @@ public class GameDataManager {
 
     public void updateTeam(Team updatedTeam) {
         requireNotNull(updatedTeam, "updatedTeam");
+        getTeamById(updatedTeam.getTeamId())
+                .orElseThrow(() -> new IllegalArgumentException("Team not found: " + updatedTeam.getTeamId()));
+        normalizeTeamMemberships(updatedTeam.getMembers(), updatedTeam.getTeamId());
+        updatedTeam.setMembers(removeDuplicatePlayers(updatedTeam.getMembers()));
         replaceTeam(updatedTeam);
     }
 
     public void updateMatchRecord(MatchRecord updatedMatchRecord) {
         requireNotNull(updatedMatchRecord, "updatedMatchRecord");
-        MatchRecord existingMatchRecord = getMatchRecordById(updatedMatchRecord.getMatchId())
+        getMatchRecordById(updatedMatchRecord.getMatchId())
                 .orElseThrow(() -> new IllegalArgumentException("Match record not found: " + updatedMatchRecord.getMatchId()));
+        removeMatchRecordFromAllPlayers(updatedMatchRecord.getMatchId());
         replaceMatchRecord(updatedMatchRecord);
-        replaceMatchRecordReferences(existingMatchRecord, updatedMatchRecord);
+        for (Player player : updatedMatchRecord.getPlayers()) {
+            if (player.getMatchHistory().stream().noneMatch(match -> equalsIgnoreCase(match.getMatchId(), updatedMatchRecord.getMatchId()))) {
+                player.addMatchRecord(updatedMatchRecord);
+            }
+        }
     }
 
     public void deleteAdmin(String adminId) {
@@ -312,12 +327,6 @@ public class GameDataManager {
         }
     }
 
-    private void replaceMatchRecordReferences(MatchRecord existingMatchRecord, MatchRecord updatedMatchRecord) {
-        for (Player player : players) {
-            replaceListValue(player.getMatchHistory(), existingMatchRecord, updatedMatchRecord);
-        }
-    }
-
     private void replaceHero(Hero updatedHero) {
         for (int i = 0; i < heroes.size(); i++) {
             if (equalsIgnoreCase(heroes.get(i).getHeroId(), updatedHero.getHeroId())) {
@@ -378,6 +387,20 @@ public class GameDataManager {
         }
     }
 
+    private void requireUniqueUsername(String username, String currentUserId) {
+        if (isBlank(username)) {
+            throw new IllegalArgumentException("Username cannot be blank.");
+        }
+
+        for (Person user : users) {
+            boolean sameUsername = equalsIgnoreCase(user.getUsername(), username);
+            boolean sameUser = currentUserId != null && equalsIgnoreCase(user.getId(), currentUserId);
+            if (sameUsername && !sameUser) {
+                throw new IllegalArgumentException("Duplicate username: " + username);
+            }
+        }
+    }
+
     private void requireUniqueHeroId(String id) {
         if (isBlank(id)) {
             throw new IllegalArgumentException("Hero id cannot be blank.");
@@ -433,6 +456,65 @@ public class GameDataManager {
             if (list.get(i) == existingValue) {
                 list.set(i, updatedValue);
             }
+        }
+    }
+
+    private void normalizeTeamMemberships(List<Player> incomingMembers, String keepTeamId) {
+        if (incomingMembers == null || incomingMembers.isEmpty()) {
+            return;
+        }
+
+        List<String> incomingIds = new ArrayList<>();
+        for (Player player : incomingMembers) {
+            if (player != null && !isBlank(player.getId())) {
+                incomingIds.add(player.getId());
+            }
+        }
+
+        for (Team team : teams) {
+            if (keepTeamId != null && equalsIgnoreCase(team.getTeamId(), keepTeamId)) {
+                continue;
+            }
+            team.getMembers().removeIf(member -> containsPlayerId(incomingIds, member));
+        }
+    }
+
+    private boolean containsPlayerId(List<String> playerIds, Player player) {
+        if (player == null || isBlank(player.getId())) {
+            return false;
+        }
+        for (String playerId : playerIds) {
+            if (equalsIgnoreCase(playerId, player.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<Player> removeDuplicatePlayers(List<Player> incomingMembers) {
+        List<Player> uniquePlayers = new ArrayList<>();
+        if (incomingMembers == null) {
+            return uniquePlayers;
+        }
+
+        for (Player player : incomingMembers) {
+            if (player == null || isBlank(player.getId())) {
+                continue;
+            }
+
+            boolean exists = uniquePlayers.stream()
+                    .anyMatch(existing -> equalsIgnoreCase(existing.getId(), player.getId()));
+            if (!exists) {
+                uniquePlayers.add(player);
+            }
+        }
+
+        return uniquePlayers;
+    }
+
+    private void removeMatchRecordFromAllPlayers(String matchId) {
+        for (Player player : players) {
+            player.getMatchHistory().removeIf(matchRecord -> equalsIgnoreCase(matchRecord.getMatchId(), matchId));
         }
     }
 }

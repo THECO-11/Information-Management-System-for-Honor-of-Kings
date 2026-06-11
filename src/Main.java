@@ -418,12 +418,13 @@ public class Main {
             double winRate = inputHelper.readDouble("Win rate: ");
             List<Hero> heroes = resolveHeroesByPrompt("Hero IDs (comma-separated, blank for none): ");
             String teamId = inputHelper.readText("Team ID (blank for no team): ");
+            Team targetTeam = resolveOptionalTeam(teamId);
 
             Player player = new Player(id, name, username, password, level, winRate);
             player.setHeroes(heroes);
 
             dataManager.addPlayer(player);
-            assignPlayerToTeam(player, teamId);
+            assignPlayerToTeam(player, targetTeam);
             System.out.println("Player added successfully.");
         } catch (IllegalArgumentException exception) {
             System.out.println("Add player failed: " + exception.getMessage());
@@ -448,13 +449,14 @@ public class Main {
             List<Hero> heroes = resolveHeroesByPrompt("New hero IDs (comma-separated, blank for none): ");
             String teamId = inputHelper.readText("New team ID (blank for no team, current "
                     + (currentTeam == null ? "none" : currentTeam.getTeamId()) + "): ");
+            Team targetTeam = resolveOptionalTeam(teamId);
 
             Player updatedPlayer = new Player(existingPlayer.getId(), name, username, password, level, winRate);
             updatedPlayer.setHeroes(heroes);
             updatedPlayer.setMatchHistory(existingPlayer.getMatchHistory());
 
             dataManager.updatePlayer(updatedPlayer);
-            assignPlayerToTeam(updatedPlayer, teamId);
+            assignPlayerToTeam(updatedPlayer, targetTeam);
             System.out.println("Player updated successfully.");
         } catch (IllegalArgumentException exception) {
             System.out.println("Update player failed: " + exception.getMessage());
@@ -656,8 +658,7 @@ public class Main {
             updatedMatchRecord.setPlayers(players);
             updatedMatchRecord.setHeroesUsed(heroesUsed);
 
-            dataManager.deleteMatchRecord(existingMatchRecord.getMatchId());
-            dataManager.addMatchRecord(updatedMatchRecord);
+            dataManager.updateMatchRecord(updatedMatchRecord);
             System.out.println("Match record updated successfully.");
         } catch (IllegalArgumentException exception) {
             System.out.println("Update match record failed: " + exception.getMessage());
@@ -999,23 +1000,29 @@ public class Main {
         }
     }
 
-    private void assignPlayerToTeam(Player player, String teamId) {
+    private void assignPlayerToTeam(Player player, Team targetTeam) {
         for (Team team : dataManager.getTeams()) {
             team.getMembers().removeIf(member -> samePlayerId(member, player));
         }
 
-        if (isBlank(teamId)) {
+        if (targetTeam == null) {
             return;
         }
-
-        Team targetTeam = dataManager.getTeamById(teamId).orElseThrow(
-                () -> new IllegalArgumentException("Team not found: " + teamId));
 
         boolean alreadyExists = targetTeam.getMembers().stream()
                 .anyMatch(member -> samePlayerId(member, player));
         if (!alreadyExists) {
             targetTeam.addMember(player);
         }
+    }
+
+    private Team resolveOptionalTeam(String teamId) {
+        if (isBlank(teamId)) {
+            return null;
+        }
+
+        return dataManager.getTeamById(teamId).orElseThrow(
+                () -> new IllegalArgumentException("Team not found: " + teamId));
     }
 
     private List<Hero> resolveHeroesByPrompt(String prompt) {

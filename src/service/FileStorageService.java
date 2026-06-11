@@ -4,8 +4,9 @@ import enums.EquipmentType;
 import enums.HeroType;
 import enums.MatchResult;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +23,15 @@ import model.Player;
 import model.Team;
 
 public class FileStorageService {
+    private static final List<String> REQUIRED_FILES = Arrays.asList(
+            "admins.csv",
+            "players.csv",
+            "equipment.csv",
+            "heroes.csv",
+            "teams.csv",
+            "matches.csv"
+    );
+
     private final Path dataDirectory;
 
     public FileStorageService(Path dataDirectory) {
@@ -31,14 +41,13 @@ public class FileStorageService {
     public void save(GameDataManager dataManager) {
         try {
             Files.createDirectories(dataDirectory);
-
             writeCsvFile("admins.csv", buildAdminLines(dataManager.getAdmins()));
             writeCsvFile("players.csv", buildPlayerLines(dataManager.getPlayers()));
             writeCsvFile("equipment.csv", buildEquipmentLines(dataManager.getEquipmentItems()));
             writeCsvFile("heroes.csv", buildHeroLines(dataManager.getHeroes()));
             writeCsvFile("teams.csv", buildTeamLines(dataManager.getTeams()));
             writeCsvFile("matches.csv", buildMatchLines(dataManager.getMatchRecords()));
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
             throw new IllegalStateException("Failed to save data files.", exception);
         }
     }
@@ -49,6 +58,7 @@ public class FileStorageService {
         }
 
         try {
+            ensureRequiredFilesExist();
             GameDataManager dataManager = new GameDataManager();
 
             List<Admin> admins = loadAdmins();
@@ -81,7 +91,7 @@ public class FileStorageService {
             dataManager.setMatchRecords(matchRecords);
 
             return dataManager;
-        } catch (IOException exception) {
+        } catch (IOException | RuntimeException exception) {
             throw new IllegalStateException("Failed to load data files.", exception);
         }
     }
@@ -349,13 +359,16 @@ public class FileStorageService {
     }
 
     private void writeCsvFile(String fileName, List<String> lines) throws IOException {
-        Files.write(dataDirectory.resolve(fileName), lines);
+        Path targetPath = dataDirectory.resolve(fileName);
+        Path temporaryPath = dataDirectory.resolve(fileName + ".tmp");
+        Files.write(temporaryPath, lines);
+        Files.move(temporaryPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
     }
 
     private List<String> readDataLines(String fileName) throws IOException {
         Path filePath = dataDirectory.resolve(fileName);
         if (!Files.exists(filePath)) {
-            return new ArrayList<>();
+            throw new IOException("Missing required data file: " + fileName);
         }
 
         List<String> lines = Files.readAllLines(filePath);
@@ -441,6 +454,19 @@ public class FileStorageService {
 
     private boolean equalsIgnoreCase(String first, String second) {
         return first != null && second != null && first.equalsIgnoreCase(second);
+    }
+
+    private void ensureRequiredFilesExist() {
+        List<String> missingFiles = new ArrayList<>();
+        for (String fileName : REQUIRED_FILES) {
+            if (!Files.exists(dataDirectory.resolve(fileName))) {
+                missingFiles.add(fileName);
+            }
+        }
+
+        if (!missingFiles.isEmpty()) {
+            throw new IllegalStateException("Missing required data files: " + String.join(", ", missingFiles));
+        }
     }
 
     private static class HeroLoadResult {
